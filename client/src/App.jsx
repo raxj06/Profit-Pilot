@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import Dashboard from './components/Dashboard.jsx'
+import Login from './components/Login.jsx'
+import Register from './components/Register.jsx'
 import AuthForm from './components/AuthForm.jsx'
 import DemoAuthForm from './components/DemoAuthForm.jsx'
 import { supabase, getCurrentUser, isSupabaseConfigured } from './lib/supabase.js'
+import { Routes, Route, Navigate } from 'react-router-dom'
 
 const App = () => {
   const [user, setUser] = useState(null)
@@ -112,7 +115,12 @@ const App = () => {
 
   // Show dashboard if user is authenticated, otherwise show auth form
   return user ? (
-    <Dashboard user={user} onLogout={handleLogout} />
+    <>
+      <Routes>
+        <Route path="/dashboard" element={<Dashboard user={user} onLogout={handleLogout} />} />
+        <Route path="*" element={<Navigate to="/dashboard" />} />
+      </Routes>
+    </>
   ) : (
     <>
       {isDemoMode && (
@@ -123,7 +131,11 @@ const App = () => {
       {isDemoMode ? (
         <DemoAuthForm onAuthSuccess={handleAuthSuccess} />
       ) : (
-        <AuthForm onAuthSuccess={handleAuthSuccess} />
+        <Routes>
+          <Route path="/login" element={<Login onAuthSuccess={handleAuthSuccess} />} />
+          <Route path="/register" element={<Register onAuthSuccess={handleAuthSuccess} />} />
+          <Route path="*" element={<Navigate to="/login" />} />
+        </Routes>
       )}
     </>
   )
