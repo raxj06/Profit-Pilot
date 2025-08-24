@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import UploadBill from './UploadBill'
+import BillsList from './BillsList'
+import BillDetails from './BillDetails'
 import { supabase } from '../lib/supabase'
 
 const Dashboard = ({ user, onLogout }) => {
@@ -8,6 +10,9 @@ const Dashboard = ({ user, onLogout }) => {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [currentView, setCurrentView] = useState('dashboard') // 'dashboard', 'bills', 'billDetails'
+  const [selectedBill, setSelectedBill] = useState(null)
 
   const handleLogout = async () => {
     setShowUserMenu(false)
@@ -121,6 +126,29 @@ const Dashboard = ({ user, onLogout }) => {
     return 'U'
   }
 
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen)
+  }
+
+  const handleViewBills = () => {
+    setCurrentView('bills')
+  }
+
+  const handleBillSelect = (bill) => {
+    setSelectedBill(bill)
+    setCurrentView('billDetails')
+  }
+
+  const handleBackToBills = () => {
+    setCurrentView('bills')
+    setSelectedBill(null)
+  }
+
+  const handleBackToDashboard = () => {
+    setCurrentView('dashboard')
+    setSelectedBill(null)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -151,14 +179,105 @@ const Dashboard = ({ user, onLogout }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div>
-              <h1 className="text-2xl font-bold text-primary">ProfitPilot</h1>
-              <p className="text-sm text-gray-600">From Bills to Balance Sheet</p>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-white shadow-lg transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}>
+        <div className="flex items-center justify-between h-16 px-4 border-b">
+          <div className="flex items-center">
+            <h1 className="text-xl font-bold text-primary">ProfitPilot</h1>
+          </div>
+          <button 
+            onClick={toggleSidebar}
+            className="lg:hidden text-gray-500 hover:text-gray-700"
+          >
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="px-4 py-6">
+          <nav>
+            <button 
+              onClick={handleBackToDashboard}
+              className={`flex items-center px-4 py-2 w-full text-left rounded-lg ${
+                currentView === 'dashboard' ? 'text-gray-700 bg-blue-50' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              Dashboard
+            </button>
+            <button 
+              onClick={handleViewBills}
+              className={`flex items-center px-4 py-2 mt-2 w-full text-left rounded-lg ${
+                currentView === 'bills' || currentView === 'billDetails' ? 'text-gray-700 bg-blue-50' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Bills
+            </button>
+            <a href="#" className="flex items-center px-4 py-2 mt-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Reports
+            </a>
+            <a href="#" className="flex items-center px-4 py-2 mt-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Settings
+            </a>
+          </nav>
+          
+          <div className="absolute bottom-0 w-full px-4 py-6 border-t">
+            <button
+              onClick={handleLogout}
+              className="flex items-center w-full px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            >
+              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Sign out
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Overlay for mobile */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 z-20 bg-black bg-opacity-50 lg:hidden"
+          onClick={toggleSidebar}
+        ></div>
+      )}
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b">
+          <div className="flex items-center justify-between h-16 px-4">
+            <div className="flex items-center">
+              <button 
+                onClick={toggleSidebar}
+                className="mr-4 text-gray-500 hover:text-gray-700 lg:hidden"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <div>
+                <h1 className="text-xl font-bold text-primary">
+                  {currentView === 'dashboard' && 'Dashboard'}
+                  {currentView === 'bills' && 'Bills'}
+                  {currentView === 'billDetails' && 'Bill Details'}
+                </h1>
+                <p className="text-xs text-gray-600">From Bills to Balance Sheet</p>
+              </div>
             </div>
             <div className="flex items-center">
               <div className="relative">
@@ -188,168 +307,192 @@ const Dashboard = ({ user, onLogout }) => {
               </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">Welcome back!</h2>
-          <p className="mt-1 text-gray-600">Here's what's happening with your bills today.</p>
-        </div>
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          {currentView === 'dashboard' && (
+            <>
+              {/* Welcome Section */}
+              <div className="mb-6 md:mb-8">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Welcome back!</h2>
+                <p className="mt-1 text-gray-600">Here's what's happening with your bills today.</p>
+              </div>
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          {summaryStats.map((stat, index) => (
-            <div key={index} className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <span className="text-2xl">{stat.icon}</span>
+              {/* Summary Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-6 md:mb-8">
+                {summaryStats.map((stat, index) => (
+                  <div key={index} className="bg-white rounded-lg shadow p-4 md:p-6">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <span className="text-xl md:text-2xl">{stat.icon}</span>
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-xs md:text-sm font-medium text-gray-600">{stat.label}</p>
+                        <p className={`text-lg md:text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {/* GST Reclaim Card */}
+                <div className="bg-white rounded-lg shadow p-4 md:p-6">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <span className="text-xl md:text-2xl">💸</span>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-xs md:text-sm font-medium text-gray-600">GST Reclaimable</p>
+                      <p className="text-lg md:text-2xl font-bold text-green-600">
+                        ₹{stats?.reclaimable_gst ? Number(stats.reclaimable_gst).toLocaleString() : '0'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                  <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+              </div>
+
+              {/* Upload Bill Section */}
+              <div className="mb-6 md:mb-8">
+                <UploadBill user={user} />
+              </div>
+
+              {/* Recent Bills */}
+              <div className="bg-white shadow rounded-lg">
+                <div className="px-4 md:px-6 py-4 border-b border-gray-200">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium text-gray-900">Recent Bills</h3>
+                    <button 
+                      onClick={handleViewBills}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    >
+                      View All
+                    </button>
+                  </div>
+                </div>
+                <div className="overflow-hidden">
+                  {bills.length === 0 ? (
+                    <div className="px-4 md:px-6 py-12 text-center">
+                      <div className="text-gray-400 text-4xl md:text-6xl mb-4">📄</div>
+                      <p className="text-gray-500 text-lg">No bills uploaded yet</p>
+                      <p className="text-gray-400 mt-2">Upload your first bill to get started!</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Invoice Details
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Seller
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                              Buyer
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Type
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Amount
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Date
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {bills.map((bill) => (
+                            <tr 
+                              key={bill.id} 
+                              className="hover:bg-gray-50 cursor-pointer"
+                              onClick={() => handleBillSelect(bill)}
+                            >
+                              <td className="px-4 py-4 whitespace-nowrap">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {bill.invoice_number || `INV-${bill.id?.slice(-8)}`}
+                                </div>
+                                {bill.bill_items && bill.bill_items.length > 0 && (
+                                  <div className="text-sm text-gray-500">
+                                    {bill.bill_items.length} item{bill.bill_items.length !== 1 ? 's' : ''}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap">
+                                <div className="text-sm text-gray-900 max-w-32 truncate" title={bill.seller_name}>
+                                  {bill.seller_name || 'Unknown Seller'}
+                                </div>
+                                {bill.seller_gstin && (
+                                  <div className="text-xs text-gray-500">GSTIN: {bill.seller_gstin.slice(-4)}</div>
+                                )}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap hidden md:table-cell">
+                                <div className="text-sm text-gray-900 max-w-24 truncate" title={bill.buyer_name}>
+                                  {bill.buyer_name || 'N/A'}
+                                </div>
+                                {bill.buyer_gstin && (
+                                  <div className="text-xs text-gray-500">GSTIN: {bill.buyer_gstin.slice(-4)}</div>
+                                )}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap">
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  bill.transaction_type === 'expense' 
+                                    ? 'bg-red-100 text-red-800' 
+                                    : bill.transaction_type === 'purchase'
+                                    ? 'bg-orange-100 text-orange-800'
+                                    : bill.transaction_type === 'income'
+                                    ? 'bg-green-100 text-green-800'
+                                    : bill.transaction_type === 'sales'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {bill.transaction_type || 'unknown'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap">
+                                <div className="text-sm font-medium text-gray-900">
+                                  ₹{bill.total_amount ? Number(bill.total_amount).toLocaleString() : '0.00'}
+                                </div>
+                                {bill.gst_amount && (
+                                  <div className="text-xs text-gray-500">
+                                    GST: ₹{Number(bill.gst_amount).toLocaleString()}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {bill.invoice_date ? new Date(bill.invoice_date).toLocaleDateString() : 
+                                 bill.created_at ? new Date(bill.created_at).toLocaleDateString() : 
+                                 'N/A'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          ))}
-          
-          {/* GST Reclaim Card */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <span className="text-2xl">💸</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">GST Reclaimable</p>
-                <p className="text-2xl font-bold text-green-600">
-                  ₹{stats?.reclaimable_gst ? Number(stats.reclaimable_gst).toLocaleString() : '0'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+            </>
+          )}
 
-        {/* Upload Bill Section */}
-        <div className="mb-8">
-          <UploadBill user={user} />
-        </div>
+          {currentView === 'bills' && (
+            <BillsList user={user} onBillSelect={handleBillSelect} />
+          )}
 
-        {/* Recent Bills */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Recent Bills</h3>
-          </div>
-          <div className="overflow-hidden">
-            {bills.length === 0 ? (
-              <div className="px-6 py-12 text-center">
-                <div className="text-gray-400 text-6xl mb-4">📄</div>
-                <p className="text-gray-500 text-lg">No bills uploaded yet</p>
-                <p className="text-gray-400 mt-2">Upload your first bill to get started!</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Invoice Details
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Seller
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                        Buyer
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Type
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Amount
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {bills.map((bill) => (
-                      <tr key={bill.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {bill.invoice_number || `INV-${bill.id?.slice(-8)}`}
-                          </div>
-                          {bill.bill_items && bill.bill_items.length > 0 && (
-                            <div className="text-sm text-gray-500">
-                              {bill.bill_items.length} item{bill.bill_items.length !== 1 ? 's' : ''}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 max-w-32 truncate" title={bill.seller_name}>
-                            {bill.seller_name || 'Unknown Seller'}
-                          </div>
-                          {bill.seller_gstin && (
-                            <div className="text-xs text-gray-500">GSTIN: {bill.seller_gstin.slice(-4)}</div>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap hidden md:table-cell">
-                          <div className="text-sm text-gray-900 max-w-24 truncate" title={bill.buyer_name}>
-                            {bill.buyer_name || 'N/A'}
-                          </div>
-                          {bill.buyer_gstin && (
-                            <div className="text-xs text-gray-500">GSTIN: {bill.buyer_gstin.slice(-4)}</div>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            bill.transaction_type === 'expense' 
-                              ? 'bg-red-100 text-red-800' 
-                              : bill.transaction_type === 'purchase'
-                              ? 'bg-orange-100 text-orange-800'
-                              : bill.transaction_type === 'income'
-                              ? 'bg-green-100 text-green-800'
-                              : bill.transaction_type === 'sales'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {bill.transaction_type || 'unknown'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            ₹{bill.total_amount ? Number(bill.total_amount).toLocaleString() : '0.00'}
-                          </div>
-                          {bill.gst_amount && (
-                            <div className="text-xs text-gray-500">
-                              GST: ₹{Number(bill.gst_amount).toLocaleString()}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {bill.invoice_date ? new Date(bill.invoice_date).toLocaleDateString() : 
-                           bill.created_at ? new Date(bill.created_at).toLocaleDateString() : 
-                           'N/A'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      </main>
+          {currentView === 'billDetails' && (
+            <BillDetails bill={selectedBill} onBack={handleBackToBills} user={user} />
+          )}
+        </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t mt-12">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-gray-500">
-            © 2025 ProfitPilot. All rights reserved.
-          </p>
-        </div>
-      </footer>
+        {/* Footer */}
+        <footer className="bg-white border-t mt-6 md:mt-12">
+          <div className="py-4 md:py-6 px-4 md:px-6">
+            <p className="text-center text-xs md:text-sm text-gray-500">
+              © 2025 ProfitPilot. All rights reserved.
+            </p>
+          </div>
+        </footer>
+      </div>
     </div>
   )
 }

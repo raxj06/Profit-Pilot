@@ -2,6 +2,13 @@ const { uploadToSupabase } = require('../middleware/upload');
 const { generateN8nToken } = require('../utils/generateN8nToken');
 const { processBillViaN8n } = require('../utils/sendToN8n');
 const pool = require('../config/db');
+const { createClient } = require('@supabase/supabase-js');
+
+// Initialize Supabase client with service role key for full access
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 const uploadBill = async (req, res) => {
   try {
@@ -180,15 +187,234 @@ const getBills = async (req, res) => {
     
     const result = await pool.query(query, [userId, limit]);
     
+    // Fetch bill items for each bill
+    const billsWithItems = await Promise.all(result.rows.map(async (bill) => {
+      const itemsQuery = `
+        SELECT id, bill_id, description, quantity, unit_price, amount, gst_rate, category, created_at
+        FROM bill_items 
+        WHERE bill_id = $1
+        ORDER BY created_at ASC
+      `;
+      
+      const itemsResult = await pool.query(itemsQuery, [bill.id]);
+      return {
+        ...bill,
+        bill_items: itemsResult.rows
+      };
+    }));
+    
     console.log(`✅ Found ${result.rows.length} bills for user ${userId}`);
     
     res.status(200).json({
-      data: result.rows
+      data: billsWithItems
     });
   } catch (error) {
     console.error('Error fetching bills:', error);
     res.status(500).json({ 
       error: 'Internal server error while fetching bills' 
+    });
+  }
+};
+
+const getBillById = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const billId = req.params.billId;
+    
+    console.log(`📄 Fetching bill ${billId} for user ${userId}`);
+    
+    // Fetch the bill
+    const billQuery = `
+      SELECT id, user_id, file_url, invoice_number, invoice_date, 
+             seller_name, seller_address, seller_gstin,
+             buyer_name, buyer_address, buyer_gstin,
+             total_amount, gst_amount, transaction_type, category,
+             status, created_at, updated_at, subtotal, other_charges, payment_method, notes
+      FROM bills 
+      WHERE id = $1 AND user_id = $2
+    `;
+    
+    const billResult = await pool.query(billQuery, [billId, userId]);
+    
+    if (billResult.rows.length === 0) {
+      return res.status(404).json({ 
+        error: 'Bill not found' 
+      });
+    }
+    
+    const bill = billResult.rows[0];
+    
+    // Fetch bill items
+    const itemsQuery = `
+      SELECT id, bill_id, description, quantity, unit_price, amount, gst_rate, category, created_at
+      FROM bill_items 
+      WHERE bill_id = $1
+      ORDER BY created_at ASC
+    `;
+    
+    const itemsResult = await pool.query(itemsQuery, [billId]);
+    
+    // Add items to the bill
+    const billWithItems = {
+      ...bill,
+      bill_items: itemsResult.rows
+    };
+    
+    console.log(`✅ Found bill ${billId} for user ${userId}`);
+    
+    res.status(200).json({
+      data: billWithItems
+    });
+  } catch (error) {
+    console.error('Error fetching bill:', error);
+    res.status(500).json({ 
+      error: 'Internal server error while fetching bill' 
+    });
+  }
+};
+
+const downloadBill = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const billId = req.params.billId;
+    
+    console.log(`📥 Downloading bill ${billId} for user ${userId}`);
+    
+    // Fetch the bill to get the file path
+    const billQuery = `
+      SELECT id, user_id, file_url
+      FROM bills 
+      WHERE id = $1 AND user_id = $2
+    `;
+    
+    const billResult = await pool.query(billQuery, [billId, userId]);
+    
+    if (billResult.rows.length === 0) {
+      console.log(`❌ Bill ${billId} not found for user ${userId}`);
+      return res.status(404).json({ 
+        error: 'Bill not found' 
+      });
+    }
+    
+    const bill = billResult.rows[0];
+    const fileUrl = bill.file_url;
+    
+    console.log(`📄 File URL from database: ${fileUrl}`);
+    
+    // Extract the file path from the public URL
+    // The URL format is usually: https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path>
+    let filePath = '';
+    
+    if (fileUrl.includes('/storage/v1/object/public/')) {
+      const urlParts = fileUrl.split('/');
+      const bucketIndex = urlParts.indexOf('public') + 1; // Index of 'bills' bucket
+      filePath = urlParts.slice(bucketIndex + 1).join('/'); // Everything after 'bills'
+    } else {
+      // Fallback: try to extract path after the last occurrence of the bucket name
+      const bucketName = 'bills';
+      const bucketIndex = fileUrl.indexOf(bucketName);
+      if (bucketIndex !== -1) {
+        filePath = fileUrl.substring(bucketIndex + bucketName.length + 1);
+      } else {
+        // If we can't parse the URL, return an error
+        console.error('❌ Could not extract file path from URL:', fileUrl);
+        return res.status(500).json({ 
+          error: 'Could not extract file path from URL' 
+        });
+      }
+    }
+    
+    console.log(`📄 Extracted file path: ${filePath}`);
+    
+    // Create a more direct download approach using the public URL
+    // This ensures compatibility with how the files were originally uploaded
+    try {
+      // Fetch the file content from the public URL
+      const fileResponse = await fetch(fileUrl);
+      
+      if (!fileResponse.ok) {
+        throw new Error(`Failed to fetch file: ${fileResponse.status} ${fileResponse.statusText}`);
+      }
+      
+      // Get the content type and other headers
+      const contentType = fileResponse.headers.get('content-type') || 'application/octet-stream';
+      const contentLength = fileResponse.headers.get('content-length');
+      
+      // Convert response to buffer
+      const arrayBuffer = await fileResponse.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      
+      // Get filename from the path
+      const fileName = filePath.split('/').pop() || `bill-${billId}`;
+      
+      // Set appropriate headers for the file
+      const headers = {
+        'Content-Disposition': `attachment; filename="${fileName}"`,
+        'Content-Type': contentType
+      };
+      
+      if (contentLength) {
+        headers['Content-Length'] = contentLength;
+      }
+      
+      res.set(headers);
+      res.send(buffer);
+      
+      console.log(`✅ Successfully sent file: ${fileName}`);
+    } catch (fetchError) {
+      console.error('❌ Error fetching file from public URL:', fetchError.message);
+      // Fallback to Supabase download method
+      const { data, error } = await supabase.storage
+        .from('bills')
+        .download(filePath);
+      
+      if (error) {
+        console.error('❌ Error downloading file from Supabase:', error.message);
+        return res.status(500).json({ 
+          error: 'Error downloading file: ' + error.message
+        });
+      }
+      
+      if (!data) {
+        console.error('❌ No data returned from Supabase download');
+        return res.status(500).json({ 
+          error: 'No data returned from file download' 
+        });
+      }
+      
+      // Convert the Blob to Buffer for proper transmission
+      const arrayBuffer = await data.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      
+      // Get filename from the path
+      const fileName = filePath.split('/').pop() || `bill-${billId}`;
+      
+      // Determine file extension for proper Content-Type
+      let contentType = 'application/octet-stream'; // default
+      
+      if (fileName.toLowerCase().endsWith('.pdf')) {
+        contentType = 'application/pdf';
+      } else if (fileName.toLowerCase().endsWith('.jpg') || fileName.toLowerCase().endsWith('.jpeg')) {
+        contentType = 'image/jpeg';
+      } else if (fileName.toLowerCase().endsWith('.png')) {
+        contentType = 'image/png';
+      }
+      
+      // Set appropriate headers for the file
+      res.set({
+        'Content-Disposition': `attachment; filename="${fileName}"`,
+        'Content-Type': contentType,
+        'Content-Length': buffer.length
+      });
+      
+      // Send the file data
+      res.send(buffer);
+      console.log(`✅ Successfully sent file via Supabase download: ${fileName}`);
+    }
+  } catch (error) {
+    console.error('Error downloading bill:', error);
+    res.status(500).json({ 
+      error: 'Internal server error while downloading bill: ' + error.message
     });
   }
 };
@@ -240,5 +466,7 @@ const getStats = async (req, res) => {
 module.exports = {
   uploadBill,
   getBills,
+  getBillById,
+  downloadBill,
   getStats
 };
