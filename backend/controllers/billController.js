@@ -431,7 +431,7 @@ const getStats = async (req, res) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - period);
     
-    // Updated query to calculate detailed stats including GST reclaim
+    // Query to get summary stats
     const query = `
       SELECT 
         COUNT(*) as total_bills,
@@ -440,7 +440,9 @@ const getStats = async (req, res) => {
         COALESCE(SUM(CASE WHEN transaction_type = 'sales' THEN total_amount ELSE 0 END), 0) as sales_amount,
         COALESCE(SUM(CASE WHEN transaction_type = 'purchase' THEN total_amount ELSE 0 END), 0) as purchase_amount,
         COALESCE(SUM(CASE WHEN transaction_type = 'sales' THEN gst_amount ELSE 0 END), 0) as sales_gst,
-        COALESCE(SUM(CASE WHEN transaction_type = 'purchase' THEN gst_amount ELSE 0 END), 0) as purchase_gst
+        COALESCE(SUM(CASE WHEN transaction_type = 'purchase' THEN gst_amount ELSE 0 END), 0) as purchase_gst,
+        COALESCE(SUM(gst_amount), 0) as total_gst_amount,
+        COALESCE(SUM(CASE WHEN transaction_type = 'purchase' THEN gst_amount ELSE 0 END), 0) as reclaimable_gst
       FROM bills 
       WHERE user_id = $1 
       AND created_at BETWEEN $2 AND $3
@@ -448,7 +450,7 @@ const getStats = async (req, res) => {
     
     const result = await pool.query(query, [userId, startDate, endDate]);
     
-    // Calculate GST reclaimable amount (for purchase bills)
+    // Calculate GST reclaimable amount
     const stats = result.rows[0];
     stats.reclaimable_gst = stats.purchase_gst || 0;
     

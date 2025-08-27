@@ -14,7 +14,10 @@ ProfitPilot is an AI-powered financial management application that helps small b
 - Real-time analytics and financial overview
 - Total bills tracking
 - Sales and purchase monitoring
-- GST reclaimable calculation
+- GST calculation with separate tracking for sales GST and purchase GST
+- Total GST amount calculation
+- Reclaimable GST tracking (based on purchase GST)
+- Sales GST tracking
 - Recent transactions table
 
 ### 🔐 Authentication
@@ -148,9 +151,9 @@ CREATE TABLE bills (
   buyer_address TEXT,
   buyer_gstin TEXT,
   total_amount DECIMAL(10, 2),
-  gst_amount DECIMAL(10, 2),
-  transaction_type TEXT CHECK (transaction_type IN ('sales', 'purchase')),
-  raw_data JSONB,
+  gst_amount DECIMAL(10, 2),  -- Total GST amount for the bill
+  transaction_type TEXT CHECK (transaction_type IN ('sales', 'purchase')),  -- Type of transaction
+  raw_data JSONB,  -- Raw AI extraction data
   created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -158,12 +161,13 @@ CREATE TABLE bills (
 CREATE TABLE bill_items (
   id SERIAL PRIMARY KEY,
   bill_id INTEGER REFERENCES bills(id) ON DELETE CASCADE,
-  description TEXT,
-  quantity INTEGER,
-  unit_price DECIMAL(10, 2),
-  amount DECIMAL(10, 2),
-  gst_rate DECIMAL(5, 2),
-  category TEXT,
+  description TEXT,  -- Item description
+  quantity INTEGER,  -- Quantity of item
+  unit_price DECIMAL(10, 2),  -- Price per unit
+  amount DECIMAL(10, 2),  -- Total amount for item
+  gst_rate DECIMAL(5, 2),  -- GST rate applicable
+  gst_amount DECIMAL(10, 2),  -- GST amount for this item
+  category TEXT,  -- Category of item
   created_at TIMESTAMP DEFAULT NOW()
 );
 ```
@@ -217,11 +221,19 @@ npm run build  # Production build
 1. Ensure frontend is running on `http://localhost:3000`
 2. Test authentication flows
 3. Test bill upload functionality
-4. Verify dashboard displays data correctly
+4. Verify dashboard displays data correctly, including GST statistics
 
 ### Backend Testing
 1. Ensure backend is running on `http://localhost:4000`
-2. Test API endpoints with tools like Postman
+2. Test API endpoints with tools like Postman, particularly the stats endpoint that includes:
+   - Total bills count
+   - Total amount (sum of all transactions)
+   - Total GST (sum of all GST amounts)
+   - Sales amount (sum of sales transactions)
+   - Purchase amount (sum of purchase transactions)
+   - Sales GST (sum of GST from sales)
+   - Purchase GST (sum of GST from purchases)
+   - Reclaimable GST (same as purchase GST)
 3. Verify database operations
 4. Check authentication middleware
 

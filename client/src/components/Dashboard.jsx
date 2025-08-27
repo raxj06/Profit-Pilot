@@ -7,7 +7,14 @@ import { supabase } from '../lib/supabase'
 const Dashboard = ({ user, onLogout }) => {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [bills, setBills] = useState([])
-  const [stats, setStats] = useState(null)
+  const [stats, setStats] = useState({
+    total_bills: 0,
+    total_amount: 0,
+    total_gst: 0,
+    sales_amount: 0,
+    purchase_amount: 0,
+    reclaimable_gst: 0
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -95,27 +102,39 @@ const Dashboard = ({ user, onLogout }) => {
   const summaryStats = [
     {
       label: 'Total Bills',
-      value: stats?.total_bills || 0,
+      value: stats.total_bills,
       icon: '📄',
-      color: 'text-blue-600'
+      color: 'text-gray-800'
     },
     {
       label: 'Total Amount',
-      value: stats?.total_amount ? `₹${Number(stats.total_amount).toLocaleString()}` : '₹0',
+      value: `₹${Number(stats.total_amount).toLocaleString()}`,
       icon: '💰',
-      color: 'text-green-600'
+      color: 'text-gray-800'
     },
     {
-      label: 'This Month',
-      value: stats?.total_bills || 0, // For now, show total bills as monthly
-      icon: '📅',
+      label: 'Purchase Amount',
+      value: `₹${Number(stats.purchase_amount).toLocaleString()}`,
+      icon: '🛍️',
+      color: 'text-red-600'
+    },
+    {
+      label: 'Sales Amount',
+      value: `₹${Number(stats.sales_amount).toLocaleString()}`,
+      icon: '📈',
+      color: 'text-blue-600'
+    },
+    {
+      label: 'Sales GST',
+      value: `₹${Number(stats.sales_gst || 0).toLocaleString()}`,
+      icon: '📊',
       color: 'text-purple-600'
     },
     {
-      label: 'Total GST',
-      value: stats?.total_gst ? `₹${Number(stats.total_gst).toLocaleString()}` : '₹0',
-      icon: '🧾',
-      color: 'text-orange-600'
+      label: 'This Month',
+      value: new Date().toLocaleDateString('default', { month: 'short', year: 'numeric' }),
+      icon: '📅',
+      color: 'text-gray-800'
     }
   ]
 
@@ -334,6 +353,36 @@ const Dashboard = ({ user, onLogout }) => {
                     </div>
                   </div>
                 ))}
+                
+                {/* Total GST Card */}
+                <div className="bg-white rounded-lg shadow p-4 md:p-6">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <span className="text-xl md:text-2xl">🧾</span>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-xs md:text-sm font-medium text-gray-600">Total GST</p>
+                      <p className="text-lg md:text-2xl font-bold text-purple-600">
+                        ₹{stats?.total_gst ? Number(stats.total_gst).toLocaleString() : '0'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Sales GST Card */}
+                <div className="bg-white rounded-lg shadow p-4 md:p-6">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <span className="text-xl md:text-2xl">📊</span>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-xs md:text-sm font-medium text-gray-600">Sales GST</p>
+                      <p className="text-lg md:text-2xl font-bold text-blue-600">
+                        ₹{stats?.sales_gst ? Number(stats.sales_gst).toLocaleString() : '0'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
                 
                 {/* GST Reclaim Card */}
                 <div className="bg-white rounded-lg shadow p-4 md:p-6">
