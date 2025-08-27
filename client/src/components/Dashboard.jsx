@@ -125,16 +125,16 @@ const Dashboard = ({ user, onLogout }) => {
       color: 'text-blue-600'
     },
     {
-      label: 'Sales GST',
-      value: `₹${Number(stats.sales_gst || 0).toLocaleString()}`,
-      icon: '📊',
-      color: 'text-purple-600'
-    },
-    {
       label: 'This Month',
       value: new Date().toLocaleDateString('default', { month: 'short', year: 'numeric' }),
       icon: '📅',
       color: 'text-gray-800'
+    },
+    {
+      label: 'Sales GST',
+      value: `₹${Number(stats.sales_gst).toLocaleString()}`,
+      icon: '📊',
+      color: 'text-blue-600'
     }
   ]
 
@@ -364,21 +364,6 @@ const Dashboard = ({ user, onLogout }) => {
                       <p className="text-xs md:text-sm font-medium text-gray-600">Total GST</p>
                       <p className="text-lg md:text-2xl font-bold text-purple-600">
                         ₹{stats?.total_gst ? Number(stats.total_gst).toLocaleString() : '0'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Sales GST Card */}
-                <div className="bg-white rounded-lg shadow p-4 md:p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <span className="text-xl md:text-2xl">📊</span>
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-xs md:text-sm font-medium text-gray-600">Sales GST</p>
-                      <p className="text-lg md:text-2xl font-bold text-blue-600">
-                        ₹{stats?.sales_gst ? Number(stats.sales_gst).toLocaleString() : '0'}
                       </p>
                     </div>
                   </div>

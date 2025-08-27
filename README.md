@@ -13,7 +13,7 @@ ProfitPilot is an AI-powered financial management application that helps small b
 ### 📊 Financial Dashboard
 - Real-time analytics and financial overview
 - Total bills tracking
-- Sales and purchase monitoring
+- Sales and purchase monitoring with separate cards
 - GST calculation with separate tracking for sales GST and purchase GST
 - Total GST amount calculation
 - Reclaimable GST tracking (based on purchase GST)
@@ -49,212 +49,157 @@ ProfitPilot is an AI-powered financial management application that helps small b
 ## 🛠️ Tech Stack
 
 ### Frontend
-- **React 18** - UI library
-- **Vite** - Build tool
-- **Tailwind CSS** - Styling
-- **Supabase JS** - Authentication and data
+- React.js with Vite
+- Tailwind CSS for styling
+- Supabase Auth for authentication
+- React Router for navigation
 
 ### Backend
-- **Node.js** - Runtime environment
-- **Express.js** - Web framework
-- **PostgreSQL** - Database (via Supabase)
-- **Supabase** - Authentication and storage
+- Node.js with Express
+- PostgreSQL database via Supabase
+- RESTful API architecture
+- n8n webhook integration
 
 ### AI Processing
-- **n8n** - Workflow automation
-- **Google Gemini AI** - Bill data extraction
-
-## 📁 Project Structure
-
-```
-profit-pilot/
-├── backend/                 # Backend API service
-│   ├── controllers/         # Request handlers
-│   ├── middleware/          # Auth, upload middleware
-│   ├── routes/             # API route definitions
-│   ├── utils/              # Helper functions
-│   ├── config/             # Database configuration
-│   └── scripts/            # Database initialization
-└── client/                 # Frontend React application
-    ├── src/
-    │   ├── components/     # React components
-    │   ├── lib/            # Supabase configuration
-    │   └── assets/         # Images and static assets
-    └── public/             # Public assets
-```
+- n8n workflow automation platform
+- Google Gemini AI for document processing
+- Automated data extraction from bills
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 14+
+- Node.js (v14 or higher)
 - npm or yarn
 - Supabase account
-- n8n account (for AI processing)
+- n8n account with Gemini AI integration
 
 ### Installation
 
-1. **Clone the repository:**
-```bash
-git clone <repository-url>
-cd profit-pilot
-```
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/ProfitPilot.git
+   cd ProfitPilot
+   ```
 
-2. **Setup Backend:**
-```bash
-cd backend
-npm install
-```
+2. Install frontend dependencies:
+   ```bash
+   cd client
+   npm install
+   ```
 
-3. **Setup Frontend:**
-```bash
-cd ../client
-npm install
-```
+3. Install backend dependencies:
+   ```bash
+   cd ../backend
+   npm install
+   ```
 
-### Environment Configuration
+4. Set up environment variables:
+   Create a `.env` file in the `backend` directory with:
+   ```
+   SUPABASE_URL=your_supabase_url
+   SUPABASE_SERVICE_KEY=your_supabase_service_key
+   N8N_WEBHOOK_URL=your_n8n_webhook_url
+   ```
 
-#### Backend (.env)
-Create a `.env` file in the `backend` directory:
-```env
-PORT=4000
-JWT_SECRET=your_jwt_secret_here
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-N8N_WEBHOOK_URL=https://your-n8n-instance/webhook/process-bill
-N8N_JWT_SECRET=your-n8n-jwt-secret
-```
+   Create a `.env` file in the `client` directory with:
+   ```
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   VITE_BACKEND_URL=http://localhost:4000
+   ```
 
-#### Frontend (.env)
-Create a `.env` file in the `client` directory:
-```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_BACKEND_URL=http://localhost:4000
-```
-
-### Database Setup
-
-1. Create a Supabase project
-2. Set up the required tables:
-```sql
--- bills table
-CREATE TABLE bills (
-  id SERIAL PRIMARY KEY,
-  user_id UUID NOT NULL,
-  file_url TEXT NOT NULL,
-  invoice_number TEXT,
-  invoice_date DATE,
-  seller_name TEXT,
-  seller_address TEXT,
-  seller_gstin TEXT,
-  buyer_name TEXT,
-  buyer_address TEXT,
-  buyer_gstin TEXT,
-  total_amount DECIMAL(10, 2),
-  gst_amount DECIMAL(10, 2),  -- Total GST amount for the bill
-  transaction_type TEXT CHECK (transaction_type IN ('sales', 'purchase')),  -- Type of transaction
-  raw_data JSONB,  -- Raw AI extraction data
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
--- bill_items table
-CREATE TABLE bill_items (
-  id SERIAL PRIMARY KEY,
-  bill_id INTEGER REFERENCES bills(id) ON DELETE CASCADE,
-  description TEXT,  -- Item description
-  quantity INTEGER,  -- Quantity of item
-  unit_price DECIMAL(10, 2),  -- Price per unit
-  amount DECIMAL(10, 2),  -- Total amount for item
-  gst_rate DECIMAL(5, 2),  -- GST rate applicable
-  gst_amount DECIMAL(10, 2),  -- GST amount for this item
-  category TEXT,  -- Category of item
-  created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-3. Create a storage bucket named `uploaded-bills`
-4. Set appropriate permissions for the bucket
+5. Initialize the database:
+   ```bash
+   node scripts/init-db.js
+   ```
 
 ### Running the Application
 
-#### Backend
-```bash
-cd backend
-npm run dev    # Development mode
-# or
-npm start      # Production mode
+1. Start the backend server:
+   ```bash
+   cd backend
+   npm start
+   ```
+
+2. Start the frontend development server:
+   ```bash
+   cd client
+   npm run dev
+   ```
+
+3. Open your browser and navigate to `http://localhost:3000`
+
+## 📈 Dashboard Features
+
+The dashboard provides a comprehensive overview of your financial data:
+
+- **Total Bills**: Count of all processed bills
+- **Total Amount**: Sum of all bill amounts
+- **Purchase Amount**: Sum of all purchase bill amounts
+- **Sales Amount**: Sum of all sales bill amounts
+- **This Month**: Current month reference
+- **Total GST**: Sum of GST from all bills
+- **Sales GST**: GST amount from sales bills
+- **GST Reclaimable**: GST amount from purchase bills that can be reclaimed
+
+## 📤 Bill Upload Process
+
+1. Navigate to the upload section
+2. Drag and drop your bill image/PDF or click to select
+3. The bill is sent to n8n workflow for AI processing
+4. AI extracts key information from the bill
+5. Processed data is stored in Supabase database
+6. Results are displayed in the application
+
+## 🔄 Data Flow
+
+1. User uploads a bill through the frontend
+2. Frontend sends the bill to the backend
+3. Backend stores the bill in Supabase storage
+4. Backend triggers n8n webhook with bill data
+5. n8n workflow processes the bill with Gemini AI
+6. AI extracted data is sent back to backend
+7. Backend updates the database with processed information
+8. Frontend fetches and displays updated data
+
+## 📁 Project Structure
+
 ```
-
-#### Frontend
-```bash
-cd client
-npm run dev    # Development mode
-npm run build  # Production build
+ProfitPilot/
+├── backend/
+│   ├── controllers/
+│   ├── routes/
+│   ├── utils/
+│   ├── scripts/
+│   ├── server.js
+│   └── app.js
+├── client/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── lib/
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   └── index.html
+└── README.md
 ```
-
-## 🎮 Usage
-
-1. Start both frontend and backend servers
-2. Open your browser and navigate to the frontend URL (typically http://localhost:3000)
-3. Sign up or use demo mode to access the dashboard
-4. Upload bills using the drag & drop interface
-5. Select bill type (Sales/Purchase) before processing
-6. View financial analytics on the dashboard
-
-## 🔧 API Endpoints
-
-### Authentication
-- `POST /api/auth/login` - User login
-- `POST /api/auth/signup` - User registration
-
-### Bills
-- `POST /api/bills/upload` - Upload and process a bill
-- `GET /api/bills` - Get user bills
-- `GET /api/bills/stats/:userId` - Get user statistics
-
-### Health
-- `GET /health` - Backend health check
-
-## 🧪 Testing
-
-### Frontend Testing
-1. Ensure frontend is running on `http://localhost:3000`
-2. Test authentication flows
-3. Test bill upload functionality
-4. Verify dashboard displays data correctly, including GST statistics
-
-### Backend Testing
-1. Ensure backend is running on `http://localhost:4000`
-2. Test API endpoints with tools like Postman, particularly the stats endpoint that includes:
-   - Total bills count
-   - Total amount (sum of all transactions)
-   - Total GST (sum of all GST amounts)
-   - Sales amount (sum of sales transactions)
-   - Purchase amount (sum of purchase transactions)
-   - Sales GST (sum of GST from sales)
-   - Purchase GST (sum of GST from purchases)
-   - Reclaimable GST (same as purchase GST)
-3. Verify database operations
-4. Check authentication middleware
-
-### Bill Processing Testing
-1. Upload various bill formats (PDF, JPG, PNG)
-2. Verify AI extraction accuracy
-3. Check data storage in database
-4. Confirm dashboard updates
 
 ## 🤝 Contributing
 
+Contributions are welcome! Please feel free to submit a Pull Request.
+
 1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a pull request
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🆘 Support
+## 🙏 Acknowledgments
 
-For support, please open an issue on the GitHub repository or contact the development team.
+- Google Gemini AI for document processing capabilities
+- Supabase for backend infrastructure
+- n8n for workflow automation
+- React and Node.js communities
