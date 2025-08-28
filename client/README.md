@@ -1,6 +1,27 @@
-# ProfitPilot: From Bills to Balance Sheet
+# ProfitPilot Frontend
 
-A modern, responsive financial SaaS application built with React, Vite, and Tailwind CSS, featuring comprehensive authentication and a clean dashboard interface.
+Frontend for the ProfitPilot application built with React, Vite, and Supabase.
+
+## Development
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Create a `.env` file with your Supabase credentials:
+   ```
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   VITE_BACKEND_URL=https://your-backend-domain.com
+   ```
+
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+4. Visit `https://your-frontend-domain.com` to see the app.
 
 ## 🚀 Features
 

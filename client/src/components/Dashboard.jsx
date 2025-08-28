@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+  import React, { useState, useEffect } from 'react'
 import UploadBill from './UploadBill'
 import BillsList from './BillsList'
 import BillDetails from './BillDetails'
@@ -43,8 +43,8 @@ const Dashboard = ({ user, onLogout }) => {
         setLoading(true)
         console.log('Fetching bills for user:', user.id)
 
-        // Use the backend URL from environment variables or default to localhost:4000
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+        // Use the backend URL from environment variables or default to empty string
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
         
         // Get user session for authentication
         const { data: { session } } = await supabase.auth.getSession();

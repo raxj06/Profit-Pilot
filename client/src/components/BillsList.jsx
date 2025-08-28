@@ -17,7 +17,7 @@ const BillsList = ({ user, onBillSelect }) => {
 
     try {
       setLoading(true)
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
       
       // Get user session for authentication
       const { data: { session } } = await supabase.auth.getSession()

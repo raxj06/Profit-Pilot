@@ -6,7 +6,7 @@ const app = express();
 
 // Enable CORS for frontend
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3002',
+  origin: process.env.FRONTEND_URL || '*',
   optionsSuccessStatus: 200
 };
 

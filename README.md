@@ -99,13 +99,14 @@ ProfitPilot is an AI-powered financial management application that helps small b
    SUPABASE_URL=your_supabase_url
    SUPABASE_SERVICE_KEY=your_supabase_service_key
    N8N_WEBHOOK_URL=your_n8n_webhook_url
+   FRONTEND_URL=https://yourdomain.com
    ```
 
    Create a `.env` file in the `client` directory with:
    ```
    VITE_SUPABASE_URL=your_supabase_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   VITE_BACKEND_URL=http://localhost:4000
+   VITE_BACKEND_URL=https://your-backend-domain.com
    ```
 
 5. Initialize the database:
@@ -127,7 +128,7 @@ ProfitPilot is an AI-powered financial management application that helps small b
    npm run dev
    ```
 
-3. Open your browser and navigate to `http://localhost:3000`
+3. Open your browser and navigate to `https://your-frontend-domain.com`
 
 ## 📈 Dashboard Features
 

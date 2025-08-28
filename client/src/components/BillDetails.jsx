@@ -19,7 +19,7 @@ const BillDetails = ({ bill: initialBill, onBack, user }) => {
 
     try {
       setLoading(true);
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
       
       // Get user session for authentication
       const { data: { session } } = await supabase.auth.getSession();
@@ -57,7 +57,7 @@ const BillDetails = ({ bill: initialBill, onBack, user }) => {
     
     try {
       setDownloading(true);
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
       
       // Get user session for authentication
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();

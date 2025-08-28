@@ -117,7 +117,7 @@ const UploadBill = () => {
       formData.append('file', file)
       formData.append('billType', billType) // Add bill type to form data
 
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
       const response = await fetch(`${backendUrl}/api/bills/upload`, {
         method: 'POST',
         headers: {
