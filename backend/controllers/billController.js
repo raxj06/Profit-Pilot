@@ -315,6 +315,7 @@ const downloadBill = async (req, res) => {
     
     console.log(`📥 Downloading bill ${billId} for user ${userId}`);
     
+    let billResult;
     try {
       // Fetch the bill to get the file path
       const billQuery = `
@@ -323,7 +324,7 @@ const downloadBill = async (req, res) => {
         WHERE id = $1 AND user_id = $2
       `;
       
-      const billResult = await pool.query(billQuery, [billId, userId]);
+      billResult = await pool.query(billQuery, [billId, userId]);
       
       if (billResult.rows.length === 0) {
         console.log(`❌ Bill ${billId} not found for user ${userId}`);
