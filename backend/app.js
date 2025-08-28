@@ -10,7 +10,10 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
-app.use(cors(corsOptions));
+app.use(cors({
+  origin: ["http://localhost:3000", "https://profit-pilot-eight.vercel.app"],
+  credentials: true,
+}));
 
 // Use JSON body parser
 app.use(express.json());
