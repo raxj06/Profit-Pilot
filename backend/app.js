@@ -6,7 +6,7 @@ const app = express();
 
 // Enable CORS for frontend
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || '*',
+  origin: process.env.FRONTEND_URL || 'https://profit-pilot-eight.vercel.app',
   optionsSuccessStatus: 200
 };
 
