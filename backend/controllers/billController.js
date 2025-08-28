@@ -4,6 +4,36 @@ const { processBillViaN8n } = require('../utils/sendToN8n');
 const pool = require('../config/db');
 const { createClient } = require('@supabase/supabase-js');
 
+// Helper function to handle database errors
+const handleDatabaseError = (res, operation) => {
+  return (error) => {
+    console.error(`❌ Error ${operation}:`, error);
+    
+    // Handle specific database connection errors
+    if (error.code === 'ENETUNREACH' || error.code === 'EHOSTUNREACH' || error.code === 'ECONNREFUSED') {
+      return res.status(503).json({ 
+        error: `Database connection error - ${error.code}`,
+        message: 'Unable to connect to database. This might be a temporary network issue. Please try again later.'
+      });
+    }
+    
+    // Handle query syntax errors
+    if (error.code === '42P01' || error.code === '42703') {
+      return res.status(500).json({ 
+        error: 'Database schema error',
+        message: 'There was an issue with the database structure. Please contact support.'
+      });
+    }
+    
+    // Generic error response
+    res.status(500).json({ 
+      error: `Failed to ${operation}`,
+      message: error.message || 'An unknown error occurred',
+      code: error.code
+    });
+  };
+};
+
 // Initialize Supabase client with service role key for full access
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -105,10 +135,14 @@ const uploadBill = async (req, res) => {
       JSON.stringify(n8nResponse)
     ];
     
-    const billResult = await pool.query(billQuery, billValues);
-    const billId = billResult.rows[0].id;
-    
-    console.log(`✅ Bill saved to database with ID: ${billId}`);
+    try {
+      const billResult = await pool.query(billQuery, billValues);
+      const billId = billResult.rows[0].id;
+      
+      console.log(`✅ Bill saved to database with ID: ${billId}`);
+    } catch (error) {
+      return handleDatabaseError(res, 'save bill')(error);
+    }
     
     // Save bill items to database
     if (billData.items && Array.isArray(billData.items)) {
@@ -196,11 +230,15 @@ const getBills = async (req, res) => {
         ORDER BY created_at ASC
       `;
       
-      const itemsResult = await pool.query(itemsQuery, [bill.id]);
-      return {
-        ...bill,
-        bill_items: itemsResult.rows
-      };
+      try {
+        const itemsResult = await pool.query(itemsQuery, [bill.id]);
+        return {
+          ...bill,
+          bill_items: itemsResult.rows
+        };
+      } catch (error) {
+        return handleDatabaseError(res, 'fetch bill items')(error);
+      }
     }));
     
     console.log(`✅ Found ${result.rows.length} bills for user ${userId}`);
@@ -209,10 +247,7 @@ const getBills = async (req, res) => {
       data: billsWithItems
     });
   } catch (error) {
-    console.error('Error fetching bills:', error);
-    res.status(500).json({ 
-      error: 'Internal server error while fetching bills' 
-    });
+    handleDatabaseError(res, 'fetch bills')(error);
   }
 };
 
@@ -280,20 +315,24 @@ const downloadBill = async (req, res) => {
     
     console.log(`📥 Downloading bill ${billId} for user ${userId}`);
     
-    // Fetch the bill to get the file path
-    const billQuery = `
-      SELECT id, user_id, file_url
-      FROM bills 
-      WHERE id = $1 AND user_id = $2
-    `;
-    
-    const billResult = await pool.query(billQuery, [billId, userId]);
-    
-    if (billResult.rows.length === 0) {
-      console.log(`❌ Bill ${billId} not found for user ${userId}`);
-      return res.status(404).json({ 
-        error: 'Bill not found' 
-      });
+    try {
+      // Fetch the bill to get the file path
+      const billQuery = `
+        SELECT id, user_id, file_url
+        FROM bills 
+        WHERE id = $1 AND user_id = $2
+      `;
+      
+      const billResult = await pool.query(billQuery, [billId, userId]);
+      
+      if (billResult.rows.length === 0) {
+        console.log(`❌ Bill ${billId} not found for user ${userId}`);
+        return res.status(404).json({ 
+          error: 'Bill not found' 
+        });
+      }
+    } catch (error) {
+      return handleDatabaseError(res, 'fetch bill for download')(error);
     }
     
     const bill = billResult.rows[0];
@@ -448,20 +487,21 @@ const getStats = async (req, res) => {
       AND created_at BETWEEN $2 AND $3
     `;
     
-    const result = await pool.query(query, [userId, startDate, endDate]);
-    
-    // Calculate GST reclaimable amount
-    const stats = result.rows[0];
-    stats.reclaimable_gst = stats.purchase_gst || 0;
-    
-    console.log(`✅ Stats fetched for user ${userId}:`, stats);
-    
-    res.status(200).json(stats);
+    try {
+      const result = await pool.query(query, [userId, startDate, endDate]);
+      
+      // Calculate GST reclaimable amount
+      const stats = result.rows[0];
+      stats.reclaimable_gst = stats.purchase_gst || 0;
+      
+      console.log(`✅ Stats fetched for user ${userId}:`, stats);
+      
+      res.status(200).json(stats);
+    } catch (error) {
+      return handleDatabaseError(res, 'fetch stats')(error);
+    }
   } catch (error) {
-    console.error('Error fetching stats:', error);
-    res.status(500).json({ 
-      error: 'Internal server error while fetching stats' 
-    });
+    return handleDatabaseError(res, 'fetch stats')(error);
   }
 };
 
