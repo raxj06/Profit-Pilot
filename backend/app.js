@@ -6,11 +6,14 @@ const app = express();
 
 // Enable CORS for frontend
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || '*',
+  origin: process.env.FRONTEND_URL || 'https://profit-pilot-eight.vercel.app',
   optionsSuccessStatus: 200
 };
 
-app.use(cors(corsOptions));
+app.use(cors({
+  origin: ["http://localhost:3000", "https://profit-pilot-eight.vercel.app"],
+  credentials: true,
+}));
 
 // Use JSON body parser
 app.use(express.json());
