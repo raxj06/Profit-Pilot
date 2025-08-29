@@ -1,7 +1,7 @@
   import React, { useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
-const UploadBill = () => {
+const UploadBill = ({ user, onUploadSuccess }) => {
   const [dragActive, setDragActive] = useState(false)
   const [file, setFile] = useState(null)
   const [billType, setBillType] = useState('purchase') // New state for bill type
@@ -90,13 +90,7 @@ const UploadBill = () => {
     setSuccess('')
 
     try {
-      // Step 1: Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      
-      if (userError) {
-        throw new Error('Failed to get user information: ' + userError.message)
-      }
-      
+      // Step 1: Check if user is provided (from props)
       if (!user) {
         throw new Error('Please log in to upload bills')
       }
@@ -145,9 +139,9 @@ const UploadBill = () => {
           ? `${billData.items.length} item${billData.items.length !== 1 ? 's' : ''}`
           : 'Bill processed';
           
-        setSuccess(`✅ Upload successful! Processed "${file.name}" - ${itemSummary}, Total: ₹${billData.totalAmount || 0}`);
+        setSuccess(`✅ Upload successful! Processed "${file.name}" - ${itemSummary}, Total: ₹${billData.totalAmount || 0}. Dashboard will refresh shortly...`);
       } else {
-        setSuccess(`✅ Upload successful! Processing "${file.name}" completed.`);
+        setSuccess(`✅ Upload successful! Processing "${file.name}" completed. Dashboard will refresh shortly...`);
       }
       
       // Clear form
@@ -157,11 +151,14 @@ const UploadBill = () => {
         fileInputRef.current.value = ''
       }
 
-      // Refresh the dashboard after a delay to show the new bill
-      // Wait for 2 minutes to allow for processing
-      setTimeout(() => {
-        window.location.reload();
-      }, 120000); // 2 minutes
+      // Refresh the dashboard immediately to show the new bill
+      if (onUploadSuccess) {
+        console.log('🔄 Triggering dashboard refresh after successful upload...')
+        // Small delay to ensure success message is visible briefly
+        setTimeout(() => {
+          onUploadSuccess()
+        }, 1500) // 1.5 seconds to let user see the success message
+      }
 
     } catch (err) {
       console.error('❌ Upload error:', err)

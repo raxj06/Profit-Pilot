@@ -7,6 +7,7 @@ const BillsList = ({ user, onBillSelect }) => {
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [sortOption, setSortOption] = useState('created_at')
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     fetchBills()
@@ -44,6 +45,48 @@ const BillsList = ({ user, onBillSelect }) => {
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Function to delete a bill
+  const deleteBill = async (billId, billName = 'this bill') => {
+    if (!window.confirm(`Are you sure you want to delete ${billName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      console.log('🗑️ Deleting bill:', billId);
+
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const response = await fetch(
+        `${backendUrl}/api/bills/${billId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`
+          }
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Delete failed' }));
+        throw new Error(errorData.error || `Delete failed with status ${response.status}`);
+      }
+
+      console.log('✅ Bill deleted successfully');
+      
+      // Refresh bills list to reflect the deletion
+      await fetchBills();
+      
+    } catch (err) {
+      console.error('❌ Error deleting bill:', err);
+      setError(`Failed to delete bill: ${err.message}`);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -168,6 +211,9 @@ const BillsList = ({ user, onBillSelect }) => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -232,6 +278,21 @@ const BillsList = ({ user, onBillSelect }) => {
                     {bill.invoice_date ? new Date(bill.invoice_date).toLocaleDateString() : 
                      bill.created_at ? new Date(bill.created_at).toLocaleDateString() : 
                      'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent row click
+                        deleteBill(bill.id, bill.invoice_number || `INV-${bill.id?.slice(-8)}`);
+                      }}
+                      disabled={deleting || loading}
+                      className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50"
+                      title="Delete bill"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
                   </td>
                 </tr>
               ))}

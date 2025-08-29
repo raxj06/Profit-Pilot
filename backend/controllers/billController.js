@@ -135,9 +135,11 @@ const uploadBill = async (req, res) => {
       JSON.stringify(n8nResponse)
     ];
     
+    let billId; // Declare billId in the outer scope
+    
     try {
       const billResult = await pool.query(billQuery, billValues);
-      const billId = billResult.rows[0].id;
+      billId = billResult.rows[0].id; // Assign billId from the query result
       
       console.log(`✅ Bill saved to database with ID: ${billId}`);
     } catch (error) {
@@ -506,10 +508,111 @@ const getStats = async (req, res) => {
   }
 };
 
+const deleteBill = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const billId = req.params.billId;
+    
+    console.log(`🗑️ Deleting bill ${billId} for user ${userId}`);
+    
+    try {
+      // First check if the bill exists and belongs to the user
+      const checkQuery = `
+        SELECT id, file_url FROM bills 
+        WHERE id = $1 AND user_id = $2
+      `;
+      
+      const checkResult = await pool.query(checkQuery, [billId, userId]);
+      
+      if (checkResult.rows.length === 0) {
+        console.log(`❌ Bill ${billId} not found for user ${userId}`);
+        return res.status(404).json({ 
+          error: 'Bill not found' 
+        });
+      }
+      
+      const bill = checkResult.rows[0];
+      const fileUrl = bill.file_url;
+      
+      // Delete bill items first (due to foreign key constraint)
+      const deleteItemsQuery = `
+        DELETE FROM bill_items WHERE bill_id = $1
+      `;
+      
+      await pool.query(deleteItemsQuery, [billId]);
+      console.log(`✅ Deleted bill items for bill ${billId}`);
+      
+      // Delete the bill
+      const deleteBillQuery = `
+        DELETE FROM bills WHERE id = $1 AND user_id = $2
+      `;
+      
+      const deleteResult = await pool.query(deleteBillQuery, [billId, userId]);
+      
+      if (deleteResult.rowCount === 0) {
+        return res.status(404).json({ 
+          error: 'Bill not found' 
+        });
+      }
+      
+      console.log(`✅ Successfully deleted bill ${billId}`);
+      
+      // Optionally, delete the file from Supabase storage
+      if (fileUrl) {
+        try {
+          // Extract file path from URL
+          let filePath = '';
+          if (fileUrl.includes('/storage/v1/object/public/')) {
+            const urlParts = fileUrl.split('/');
+            const bucketIndex = urlParts.indexOf('public') + 1;
+            filePath = urlParts.slice(bucketIndex + 1).join('/');
+          } else {
+            const bucketName = 'bills';
+            const bucketIndex = fileUrl.indexOf(bucketName);
+            if (bucketIndex !== -1) {
+              filePath = fileUrl.substring(bucketIndex + bucketName.length + 1);
+            }
+          }
+          
+          if (filePath) {
+            const { error: deleteError } = await supabase.storage
+              .from('bills')
+              .remove([filePath]);
+            
+            if (deleteError) {
+              console.warn(`⚠️ Failed to delete file from storage: ${deleteError.message}`);
+            } else {
+              console.log(`✅ Successfully deleted file: ${filePath}`);
+            }
+          }
+        } catch (fileError) {
+          console.warn(`⚠️ Error deleting file from storage:`, fileError.message);
+          // Don't fail the request if file deletion fails
+        }
+      }
+      
+      res.status(200).json({
+        message: 'Bill deleted successfully',
+        billId: billId
+      });
+      
+    } catch (error) {
+      return handleDatabaseError(res, 'delete bill')(error);
+    }
+    
+  } catch (error) {
+    console.error('Error deleting bill:', error);
+    res.status(500).json({ 
+      error: 'Internal server error while deleting bill' 
+    });
+  }
+};
+
 module.exports = {
   uploadBill,
   getBills,
   getBillById,
   downloadBill,
-  getStats
+  getStats,
+  deleteBill
 };
